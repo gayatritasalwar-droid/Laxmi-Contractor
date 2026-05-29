@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import './WorkerRegistration.css';
-
-const API_BASE_URL = 'https://laxmi-contractor-backend.vercel.app/api';
+import API_BASE_URL from '../api';
 
 const WorkerRegistration = ({ onClose, onSuccess, session }) => {
   const [formData, setFormData] = useState({
@@ -162,14 +161,14 @@ const WorkerRegistration = ({ onClose, onSuccess, session }) => {
     else if (!/^\d{10}$/.test(formData.mobile)) newErrors.mobile = 'Mobile number must be 10 digits';
     if (!formData.department || formData.department === 'Select Department') newErrors.department = 'Please select department';
     
-    // ✅ AADHAR MANDATORY - YEH CHECK ADD KIYA
+    // AADHAR MANDATORY
     if (!formData.aadharNumber || formData.aadharNumber.trim() === '') {
       newErrors.aadharNumber = 'Aadhar number is required';
     } else if (!/^\d{12}$/.test(formData.aadharNumber)) {
       newErrors.aadharNumber = 'Aadhar number must be 12 digits';
     }
     
-    // ✅ AADHAR FILE MANDATORY - YEH CHECK ADD KIYA
+    // AADHAR FILE MANDATORY
     if (!formData.aadharFile) {
       newErrors.aadharFile = 'Please upload Aadhar card (PDF or Image)';
     }
