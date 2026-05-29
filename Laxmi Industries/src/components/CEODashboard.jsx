@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './CommonStyles.css';
-
-const API_BASE_URL = 'http://localhost:5000/api';
+import API_BASE_URL from '../api';
 
 const CEODashboard = ({ session, activeMenu, setActiveMenu }) => {
   const [workers, setWorkers] = useState([]);
@@ -16,7 +15,7 @@ const CEODashboard = ({ session, activeMenu, setActiveMenu }) => {
   const [category, setCategory] = useState('Non-Muster');
   const [rate, setRate] = useState('');
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState('all'); // 'all', 'pending_production', 'pending_ceo', 'pending_hr', 'finalized'
+  const [activeTab, setActiveTab] = useState('all');
 
   const showToast = (msg, isError = false) => {
     const toast = document.createElement('div');
@@ -42,8 +41,11 @@ const CEODashboard = ({ session, activeMenu, setActiveMenu }) => {
   const fetchWorkers = async () => {
     setLoading(true);
     try {
+      console.log("Fetching workers from:", `${API_BASE_URL}/workers/all`);
       const response = await fetch(`${API_BASE_URL}/workers/all`);
       const data = await response.json();
+      console.log("Fetched workers:", data);
+      
       if (Array.isArray(data)) {
         const allWorkers = data.map(w => ({ ...w, id: w._id, _id: w._id }));
         setWorkers(allWorkers);
@@ -51,7 +53,7 @@ const CEODashboard = ({ session, activeMenu, setActiveMenu }) => {
         setWorkers([]);
       }
     } catch (err) {
-      console.error(err);
+      console.error("Fetch error:", err);
       showToast('⚠️ Error loading workers', true);
       setWorkers([]);
     } finally {
@@ -61,12 +63,12 @@ const CEODashboard = ({ session, activeMenu, setActiveMenu }) => {
 
   useEffect(() => {
     fetchWorkers();
-    const interval = setInterval(fetchWorkers, 5000);
+    const interval = setInterval(fetchWorkers, 10000);
     return () => clearInterval(interval);
   }, []);
 
   // Statistics for dashboard
-  const pendingProduction = workers.filter(w => w.status === 'pending_production');
+  const pendingProduction = workers.filter(w => w.status === 'pending_production' || w.status === 'pending_contractor');
   const pendingCEO = workers.filter(w => w.status === 'pending_ceo');
   const pendingHR = workers.filter(w => w.status === 'pending_hr');
   const finalizedWorkers = workers.filter(w => w.status === 'finalized');
@@ -90,6 +92,11 @@ const CEODashboard = ({ session, activeMenu, setActiveMenu }) => {
   const handleApprove = async () => {
     if (!selectedWorker) return;
     
+    if (!rate || rate <= 0) {
+      showToast('❌ Please enter daily rate', true);
+      return;
+    }
+    
     setLoading(true);
     try {
       const response = await fetch(`${API_BASE_URL}/workers/ceo-approve/${selectedWorker._id}`, {
@@ -97,7 +104,6 @@ const CEODashboard = ({ session, activeMenu, setActiveMenu }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           dailyRate: parseInt(rate),
-          
           bondYears: bondYears,
           esiPfPercentage: esiPfPercentage,
           applyESI: applyESI,
@@ -112,12 +118,12 @@ const CEODashboard = ({ session, activeMenu, setActiveMenu }) => {
         setShowApprovalModal(false);
         setSelectedWorker(null);
         setRate('');
-        
         fetchWorkers();
       } else {
         showToast(`❌ Approval failed: ${result.error}`, true);
       }
     } catch (err) {
+      console.error("Approve error:", err);
       showToast('❌ Error approving worker', true);
     } finally {
       setLoading(false);
@@ -143,6 +149,7 @@ const CEODashboard = ({ session, activeMenu, setActiveMenu }) => {
         showToast(`❌ Rejection failed`, true);
       }
     } catch (err) {
+      console.error("Reject error:", err);
       showToast('❌ Error rejecting worker', true);
     } finally {
       setLoading(false);
@@ -168,6 +175,7 @@ const CEODashboard = ({ session, activeMenu, setActiveMenu }) => {
         showToast(`❌ Hold failed`, true);
       }
     } catch (err) {
+      console.error("Hold error:", err);
       showToast('❌ Error putting worker on hold', true);
     } finally {
       setLoading(false);
@@ -192,6 +200,7 @@ const CEODashboard = ({ session, activeMenu, setActiveMenu }) => {
   const getStageBadge = (status) => {
     switch(status) {
       case 'pending_production':
+      case 'pending_contractor':
         return <span className="stage-badge production">Pending Production</span>;
       case 'pending_ceo':
         return <span className="stage-badge ceo">Pending CEO</span>;
@@ -200,18 +209,15 @@ const CEODashboard = ({ session, activeMenu, setActiveMenu }) => {
       case 'finalized':
         return <span className="stage-badge finalized">Finalized</span>;
       case 'rejected_by_production':
-        return <span className="stage-badge rejected">Rejected by Production</span>;
       case 'rejected_by_ceo':
-        return <span className="stage-badge rejected">Rejected by CEO</span>;
-      case 'sent_back_to_contractor':
-        return <span className="stage-badge warning">Sent Back</span>;
+        return <span className="stage-badge rejected">Rejected</span>;
       default:
         return <span className="stage-badge">{status || 'Pending'}</span>;
     }
   };
 
   const StatCard = ({ title, value, icon, color, onClick }) => (
-    <div className="stat-card" style={{ borderLeftColor: color }} onClick={onClick}>
+    <div className="stat-card" style={{ borderLeftColor: color, cursor: 'pointer' }} onClick={onClick}>
       <div className="stat-icon" style={{ background: `${color}20` }}>
         <i className={`fas fa-${icon}`} style={{ color }}></i>
       </div>
@@ -240,7 +246,15 @@ const CEODashboard = ({ session, activeMenu, setActiveMenu }) => {
           <div className="table-responsive">
             <table className="data-table">
               <thead>
-                <tr><th>NAME</th><th>APPLICATION ID</th><th>DEPARTMENT</th><th>DESIGNATION</th><th>TYPE</th><th>PROPOSED RATE</th><th>ACTION</th></tr>
+                <tr>
+                  <th>NAME</th>
+                  <th>APPLICATION ID</th>
+                  <th>DEPARTMENT</th>
+                  <th>DESIGNATION</th>
+                  <th>TYPE</th>
+                  <th>PROPOSED RATE</th>
+                  <th>ACTION</th>
+                </tr>
               </thead>
               <tbody>
                 {filtered.map(w => (
@@ -304,7 +318,6 @@ const CEODashboard = ({ session, activeMenu, setActiveMenu }) => {
           <StatCard title="Total Workers" value={workers.length} icon="file-alt" color="#6b7280" onClick={() => setActiveTab('all')} />
         </div>
 
-        {/* Filter Tabs */}
         <div className="employee-filters" style={{ marginTop: '20px', marginBottom: '20px' }}>
           <div className="filter-tabs">
             <button className={`filter-tab ${activeTab === 'all' ? 'active' : ''}`} onClick={() => setActiveTab('all')}>All ({workers.length})</button>
@@ -315,7 +328,6 @@ const CEODashboard = ({ session, activeMenu, setActiveMenu }) => {
           </div>
         </div>
 
-        {/* Workers Table */}
         <div className="content-card">
           <div className="card-header">
             <h3><i className="fas fa-users"></i> Workers - {activeTab.replace('_', ' ').toUpperCase()}</h3>
@@ -324,22 +336,30 @@ const CEODashboard = ({ session, activeMenu, setActiveMenu }) => {
           <div className="table-responsive">
             <table className="data-table">
               <thead>
-                <tr><th>NAME</th><th>APPLICATION ID</th><th>DEPARTMENT</th><th>DESIGNATION</th><th>TYPE</th><th>STATUS</th><th>ACTION</th></tr>
+                <tr>
+                  <th>NAME</th>
+                  <th>APPLICATION ID</th>
+                  <th>DEPARTMENT</th>
+                  <th>DESIGNATION</th>
+                  <th>PUNCH CODE</th>
+                  <th>STATUS</th>
+                  <th>ACTION</th>
+                </tr>
               </thead>
               <tbody>
                 {getFilteredWorkers().map(w => (
                   <tr key={w._id}>
-                    <td><strong>{w.fullName}</strong></td>
-                    <td>{w.applicationId || `LXC-${w.id}`}</td>
+                    <td><strong>{w.fullName}</strong><br/><small>{w.userType === 'staff' ? 'Staff' : 'Worker'}</small></td>
+                    <td>{w.applicationId || `LXC-${w._id?.slice(-6)}`}</td>
                     <td>{w.department || 'Not Assigned'}</td>
                     <td>{w.designation || 'Worker'}</td>
-                    <td>{w.userType === 'staff' ? '👔 Staff' : '👷 Worker'}</td>
+                    <td><code>{w.punchCode || 'N/A'}</code></td>
                     <td>{getStageBadge(w.status)}</td>
                     <td>
                       {w.status === 'pending_ceo' && (
                         <button
                           className="btn-review-sm"
-                          style={{ backgroundColor: '#f59e0b', border: '2px solid #d97706', color: '#fff' }}
+                          style={{ backgroundColor: '#f59e0b', border: 'none', color: '#fff', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer' }}
                           onClick={() => {
                             setSelectedWorker(w);
                             setShowApprovalModal(true);
@@ -389,7 +409,7 @@ const CEODashboard = ({ session, activeMenu, setActiveMenu }) => {
                 <h4>Worker Information</h4>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                   <div><label>NAME:</label><p><strong>{selectedWorker.fullName}</strong></p></div>
-                  <div><label>APPLICATION ID:</label><p><strong>{selectedWorker.applicationId || `LXC-${selectedWorker.id}`}</strong></p></div>
+                  <div><label>APPLICATION ID:</label><p><strong>{selectedWorker.applicationId || `LXC-${selectedWorker._id?.slice(-6)}`}</strong></p></div>
                   <div><label>DEPARTMENT:</label><p><strong>{selectedWorker.department || 'Not Assigned'}</strong></p></div>
                   <div><label>DESIGNATION:</label><p><strong>{selectedWorker.designation || 'Worker'}</strong></p></div>
                   <div><label>TYPE:</label><p><strong>{selectedWorker.userType === 'staff' ? 'Staff' : 'Worker'}</strong></p></div>
@@ -397,16 +417,23 @@ const CEODashboard = ({ session, activeMenu, setActiveMenu }) => {
                 </div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '20px' }}>
-                <div><label>CATEGORY *</label><select value={category} onChange={e => setCategory(e.target.value)}><option>Muster</option><option>Non-Muster</option><option>Contract</option><option>Regular</option></select></div>
-                <div><label>SUB DEPARTMENT *</label><select value={subDept} onChange={e => setSubDept(e.target.value)}><option>Others</option><option>Laser Cut Section</option><option>Production</option><option>Quality</option><option>Maintenance</option><option>Welding</option><option>Packing</option></select></div>
+                <div><label>CATEGORY *</label>
+                  <select value={category} onChange={e => setCategory(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}>
+                    <option>Muster</option><option>Non-Muster</option><option>Contract</option><option>Regular</option>
+                  </select>
+                </div>
+                <div><label>SUB DEPARTMENT *</label>
+                  <select value={subDept} onChange={e => setSubDept(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}>
+                    <option>Others</option><option>Laser Cut Section</option><option>Production</option><option>Quality</option><option>Maintenance</option><option>Welding</option><option>Packing</option>
+                  </select>
+                </div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '20px' }}>
-                <div><label>DAILY RATE (₹) *</label><input type="number" value={rate} onChange={e => setRate(e.target.value)} placeholder="Daily rate" required /></div>
-                
+                <div><label>DAILY RATE (₹) *</label><input type="number" value={rate} onChange={e => setRate(e.target.value)} placeholder="Daily rate" required style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }} /></div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '20px' }}>
-                <div><label>BOND YEARS</label><input type="number" value={bondYears} onChange={e => setBondYears(parseInt(e.target.value))} /></div>
-                <div><label>ESI/PF (%)</label><input type="number" step="0.01" value={esiPfPercentage} onChange={e => setEsiPfPercentage(parseFloat(e.target.value))} /></div>
+                <div><label>BOND YEARS</label><input type="number" value={bondYears} onChange={e => setBondYears(parseInt(e.target.value))} style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }} /></div>
+                <div><label>ESI/PF (%)</label><input type="number" step="0.01" value={esiPfPercentage} onChange={e => setEsiPfPercentage(parseFloat(e.target.value))} style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }} /></div>
               </div>
               <div style={{ marginBottom: '20px' }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -422,9 +449,9 @@ const CEODashboard = ({ session, activeMenu, setActiveMenu }) => {
               <div style={{ marginTop: '15px', padding: '10px', background: '#dbeafe', borderRadius: '8px' }}><i className="fas fa-info-circle"></i><strong> Next Step:</strong> After approval, worker will go to HR for finalization.</div>
             </div>
             <div className="modal-footer" style={{ display: 'flex', justifyContent: 'center', gap: '15px', padding: '15px' }}>
-              <button className="btn-warning" onClick={handleHold} disabled={loading}>Hold</button>
-              <button className="btn-danger" onClick={handleReject} disabled={loading}>Reject</button>
-              <button className="btn-success" onClick={handleApprove} disabled={!rate  || loading}>Approve & Send to HR</button>
+              <button className="btn-warning" onClick={handleHold} disabled={loading} style={{ background: '#f59e0b', color: 'white', padding: '8px 16px', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Hold</button>
+              <button className="btn-danger" onClick={handleReject} disabled={loading} style={{ background: '#dc2626', color: 'white', padding: '8px 16px', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Reject</button>
+              <button className="btn-success" onClick={handleApprove} disabled={!rate || loading} style={{ background: '#10b981', color: 'white', padding: '8px 16px', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Approve & Send to HR</button>
             </div>
           </div>
         </div>
