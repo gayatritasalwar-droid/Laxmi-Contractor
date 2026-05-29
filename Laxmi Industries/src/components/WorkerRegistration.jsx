@@ -140,7 +140,7 @@ const WorkerRegistration = ({ onClose, onSuccess, session }) => {
         return;
       }
       if (file.size > 5 * 1024 * 1024) {
-        showToast('❌ File size must be less than 5MB', true);
+        showToast('❌ File size must be less than 1MB', true);
         return;
       }
       setFormData(prev => ({ ...prev, aadharFile: file }));
