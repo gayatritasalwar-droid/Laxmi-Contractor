@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import './Login.css';
+import API_BASE_URL from './api';
 
 const Login = ({ onLogin }) => {
   const [loginId, setLoginId] = useState('');
