@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import './WorkerRegistration.css';
 
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = 'https://laxmi-contractor-backend.vercel.app/api';
 
 const WorkerRegistration = ({ onClose, onSuccess, session }) => {
   const [formData, setFormData] = useState({
@@ -47,7 +47,7 @@ const WorkerRegistration = ({ onClose, onSuccess, session }) => {
     setTimeout(() => toast.remove(), 3000);
   };
 
-  // ✅ DUPLICATE AADHAR CHECK FUNCTION - FIXED
+  // DUPLICATE AADHAR CHECK FUNCTION
   const checkDuplicateAadhar = async (aadharNumber) => {
     if (!aadharNumber) return false;
     try {
@@ -162,6 +162,18 @@ const WorkerRegistration = ({ onClose, onSuccess, session }) => {
     else if (!/^\d{10}$/.test(formData.mobile)) newErrors.mobile = 'Mobile number must be 10 digits';
     if (!formData.department || formData.department === 'Select Department') newErrors.department = 'Please select department';
     
+    // ✅ AADHAR MANDATORY - YEH CHECK ADD KIYA
+    if (!formData.aadharNumber || formData.aadharNumber.trim() === '') {
+      newErrors.aadharNumber = 'Aadhar number is required';
+    } else if (!/^\d{12}$/.test(formData.aadharNumber)) {
+      newErrors.aadharNumber = 'Aadhar number must be 12 digits';
+    }
+    
+    // ✅ AADHAR FILE MANDATORY - YEH CHECK ADD KIYA
+    if (!formData.aadharFile) {
+      newErrors.aadharFile = 'Please upload Aadhar card (PDF or Image)';
+    }
+    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -180,7 +192,7 @@ const WorkerRegistration = ({ onClose, onSuccess, session }) => {
       return;
     }
 
-    // ✅ DUPLICATE AADHAR CHECK
+    // DUPLICATE AADHAR CHECK
     if (formData.aadharNumber) {
       const isDuplicate = await checkDuplicateAadhar(formData.aadharNumber);
       if (isDuplicate) {
@@ -285,32 +297,33 @@ const WorkerRegistration = ({ onClose, onSuccess, session }) => {
                 {errors.designation && <span className="error-text">{errors.designation}</span>}
               </div>
               <div className="form-group">
-                <label>AADHAR NUMBER</label>
+                <label>AADHAR NUMBER <span className="required">*</span></label>
                 <input 
                   type="text" 
                   name="aadharNumber" 
                   value={formData.aadharNumber} 
                   onChange={handleInputChange} 
-                  placeholder="12 digit Aadhar (optional)" 
+                  placeholder="12 digit Aadhar" 
                   maxLength="12" 
                   className={errors.aadharNumber ? 'error' : ''} 
                 />
                 {errors.aadharNumber && <span className="error-text">{errors.aadharNumber}</span>}
-                <small className="field-hint">This Aadhar number can only be used once</small>
+                <small className="field-hint">12 digit Aadhar number (Required)</small>
               </div>
             </div>
 
             <div className="form-row">
               <div className="form-group">
-                <label>UPLOAD AADHAR (OPTIONAL)</label>
+                <label>UPLOAD AADHAR <span className="required">*</span></label>
                 <div className="file-upload-area">
                   <input type="file" id="aadharFile" onChange={handleFileChange} accept=".pdf,.jpg,.jpeg,.png" style={{ display: 'none' }} />
                   <label htmlFor="aadharFile" className="file-upload-label">
                     <i className="fas fa-cloud-upload-alt"></i>
                     <span>{fileName || 'Click to upload Aadhar card'}</span>
                   </label>
-                  <small className="field-hint">Supported: PDF, JPG, JPEG, PNG (Max 5MB)</small>
+                  <small className="field-hint">Supported: PDF, JPG, JPEG, PNG (Max 5MB) - Required</small>
                 </div>
+                {errors.aadharFile && <span className="error-text">{errors.aadharFile}</span>}
               </div>
             </div>
 
