@@ -38,12 +38,40 @@ const WorkerRegistration = ({ onClose, onSuccess, session }) => {
     "Manager", "Engineer", "Sr. Engineer", "Team Lead"
   ];
 
+  // ✅ Cloudinary Config (SIRF YEH ADD KIYA HAI)
+  const CLOUDINARY_URL = 'https://api.cloudinary.com/v1_1/duqyty6sj/upload';
+  const CLOUDINARY_UPLOAD_PRESET = 'worker_registration';  // Pehle Cloudinary mein preset bana lena
+
   const showToast = (msg, isError = false) => {
     const toast = document.createElement('div');
     toast.style.cssText = `position:fixed;bottom:20px;right:20px;background:${isError ? '#dc2626' : '#10b981'};color:white;padding:12px 20px;border-radius:8px;z-index:100000;box-shadow:0 4px 12px rgba(0,0,0,0.15);`;
     toast.innerText = msg;
     document.body.appendChild(toast);
     setTimeout(() => toast.remove(), 3000);
+  };
+
+  // ✅ Cloudinary Upload Function (Naya)
+  const uploadToCloudinary = async (file) => {
+    const formDataObj = new FormData();
+    formDataObj.append('file', file);
+    formDataObj.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+    
+    try {
+      const response = await fetch(CLOUDINARY_URL, {
+        method: 'POST',
+        body: formDataObj
+      });
+      const data = await response.json();
+      if (data.secure_url) {
+        return data.secure_url;
+      } else {
+        console.error('Cloudinary Error:', data);
+        return null;
+      }
+    } catch (err) {
+      console.error('Cloudinary upload error:', err);
+      return null;
+    }
   };
 
   // DUPLICATE AADHAR CHECK FUNCTION
@@ -67,15 +95,6 @@ const WorkerRegistration = ({ onClose, onSuccess, session }) => {
     }
   };
 
-  const fileToBase64 = (file) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = error => reject(error);
-    });
-  };
-    
   const saveToBackend = async (workerData) => {
     try {
       const response = await fetch(`${API_BASE_URL}/workers/contractor/register`, {
@@ -203,9 +222,14 @@ const WorkerRegistration = ({ onClose, onSuccess, session }) => {
     setLoading(true);
     
     try {
-      let aadharBase64 = '';
+      let aadharUrl = '';  // ✅ Base64 ki jagah URL
       if (formData.aadharFile) {
-        aadharBase64 = await fileToBase64(formData.aadharFile);
+        aadharUrl = await uploadToCloudinary(formData.aadharFile);  // ✅ Cloudinary pe upload
+        if (!aadharUrl) {
+          showToast('❌ Aadhar file upload failed', true);
+          setLoading(false);
+          return;
+        }
       }
       
       const dailyRate = 500;
@@ -221,7 +245,7 @@ const WorkerRegistration = ({ onClose, onSuccess, session }) => {
         mobile: formData.mobile,
         department: formData.department,
         aadhar: formData.aadharNumber,
-        aadharBase64: aadharBase64,
+        aadharUrl: aadharUrl,  // ✅ Cloudinary URL (Base64 nahi)
         address: formData.address,
         dailyRate: dailyRate,
         salary: monthlySalary,
