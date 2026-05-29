@@ -55,7 +55,7 @@ const ProductionDashboard = ({ session, activeMenu, setActiveMenu }) => {
     "Manager", "Engineer", "Sr. Engineer", "Team Lead"
   ];
 
-  const categoryList = ["-- Select --", "Contractual", "Temporary", "Daily Wages", "Permanent"];
+  const categoryList = ["-- Select --", "Contractual", "Temporary", "Daily Wages", ];
 
   const fetchWorkers = async () => {
     setLoading(true);
