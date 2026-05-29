@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './CommonStyles.css';
 
-const API_BASE_URL = 'http://localhost:5000/api';
+import API_BASE_URL from '../api';
 
 const ProductionDashboard = ({ session, activeMenu, setActiveMenu }) => {
   const [workers, setWorkers] = useState([]);

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import './CommonStyles.css';
 import WorkerRegistration from './WorkerRegistration';
 
-const API_BASE_URL = 'http://localhost:5000/api';
+import API_BASE_URL from '../api';
 
 const HRDashboard = ({ session, activeMenu, setActiveMenu }) => {
   const showToast = (msg, isError = false) => {
