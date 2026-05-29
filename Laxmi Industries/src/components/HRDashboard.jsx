@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './CommonStyles.css';
 import WorkerRegistration from './WorkerRegistration';
-
 import API_BASE_URL from '../api';
 
 const HRDashboard = ({ session, activeMenu, setActiveMenu }) => {
@@ -413,6 +412,39 @@ const HRDashboard = ({ session, activeMenu, setActiveMenu }) => {
     return badges[status] || { color: '#6b7280', text: status };
   };
 
+  const viewAadhar = (employee) => {
+    // Check for Cloudinary URL first
+    if (employee.aadharUrl && employee.aadharUrl.startsWith('http')) {
+      const win = window.open();
+      win.document.write(`
+        <html>
+          <head><title>Aadhar - ${employee.fullName}</title></head>
+          <body style="margin:0;display:flex;justify-content:center;align-items:center;min-height:100vh;background:#f0f0f0;">
+            <img src="${employee.aadharUrl}" style="max-width:95%;max-height:95vh;box-shadow:0 0 10px rgba(0,0,0,0.2);" />
+            <p style="position:fixed;bottom:10px;background:white;padding:5px 10px;border-radius:5px;">📄 Aadhar Card</p>
+          </body>
+        </html>
+      `);
+    }
+    // Check for Base64 data
+    else if (employee.aadharBase64 && employee.aadharBase64.length > 100) {
+      const win = window.open();
+      win.document.write(`
+        <html>
+          <head><title>Aadhar - ${employee.fullName}</title></head>
+          <body style="margin:0;display:flex;justify-content:center;align-items:center;min-height:100vh;background:#f0f0f0;">
+            <img src="${employee.aadharBase64}" style="max-width:95%;max-height:95vh;box-shadow:0 0 10px rgba(0,0,0,0.2);" />
+            <p style="position:fixed;bottom:10px;background:white;padding:5px 10px;border-radius:5px;">📄 ${employee.aadharFileName || 'Aadhar Card'}</p>
+          </body>
+        </html>
+      `);
+    } else if (employee.aadharFileName && !employee.aadharBase64) {
+      alert(`❌ Aadhar file name found: ${employee.aadharFileName}\n\nBut image data is missing!\n\nPlease re-upload Aadhar for this employee.`);
+    } else {
+      alert('❌ No Aadhar file uploaded for ' + employee.fullName);
+    }
+  };
+
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: 'tachometer-alt' },
     { id: 'worker_registration', label: 'Worker Registration', icon: 'user-plus' },
@@ -776,27 +808,6 @@ const HRDashboard = ({ session, activeMenu, setActiveMenu }) => {
         </div>
       </>
     );
-  };
-
-  const viewAadhar = (employee) => {
-    if (employee.aadharBase64 && employee.aadharBase64.length > 100) {
-      const win = window.open();
-      win.document.write(`
-        <html>
-          <head><title>Aadhar - ${employee.fullName}</title></head>
-          <body style="margin:0;display:flex;justify-content:center;align-items:center;min-height:100vh;background:#f0f0f0;">
-            <img src="${employee.aadharBase64}" style="max-width:95%;max-height:95vh;box-shadow:0 0 10px rgba(0,0,0,0.2);" />
-            <p style="position:fixed;bottom:10px;background:white;padding:5px 10px;border-radius:5px;">
-              📄 ${employee.aadharFileName || 'Aadhar Card'}
-            </p>
-          </body>
-        </html>
-      `);
-    } else if (employee.aadharFileName && !employee.aadharBase64) {
-      alert(`❌ Aadhar file name found: ${employee.aadharFileName}\n\nBut image data is missing!\n\nPlease re-upload Aadhar for this employee.`);
-    } else {
-      alert('❌ No Aadhar file uploaded for ' + employee.fullName + '\n\nPlease register again with Aadhar file upload.');
-    }
   };
 
   const [formData, setFormData] = useState({
