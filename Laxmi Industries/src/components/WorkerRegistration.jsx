@@ -139,7 +139,7 @@ const WorkerRegistration = ({ onClose, onSuccess, session }) => {
         showToast('❌ Please upload PDF, JPG, JPEG, or PNG file only', true);
         return;
       }
-      if (file.size > 5 * 1024 * 1024) {
+      if (file.size > 1 * 1024 * 1024) {
         showToast('❌ File size must be less than 1MB', true);
         return;
       }
@@ -320,7 +320,7 @@ const WorkerRegistration = ({ onClose, onSuccess, session }) => {
                     <i className="fas fa-cloud-upload-alt"></i>
                     <span>{fileName || 'Click to upload Aadhar card'}</span>
                   </label>
-                  <small className="field-hint">Supported: PDF, JPG, JPEG, PNG (Max 5MB) - Required</small>
+                  <small className="field-hint">Supported: PDF, JPG, JPEG, PNG (Max 1MB) - Required</small>
                 </div>
                 {errors.aadharFile && <span className="error-text">{errors.aadharFile}</span>}
               </div>
