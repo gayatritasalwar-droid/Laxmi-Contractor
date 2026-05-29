@@ -2,7 +2,8 @@
 import axios from 'axios';
 
 // ✅ SIMPLE FIX - Sirf yeh line change karni hai
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = 'https://laxmi-contractor-backend.vercel.app/api';
+export default API_BASE_URL;
 
 const api = axios.create({
   baseURL: API_BASE_URL,  // ✅ Yahan API_BASE_URL use karo, API_URL nahi
