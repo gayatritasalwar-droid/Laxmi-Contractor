@@ -41,7 +41,7 @@ const ContractorDashboard = ({ session, activeMenu, setActiveMenu }) => {
     setLoading(true);
     try {
       console.log("Fetching workers from:", `${API_BASE_URL}/workers/all`);
-      const response = await fetch('http://localhost:5000/api/workers/all');
+     const response = await fetch(`${API_BASE_URL}/workers/all`);
       
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       
